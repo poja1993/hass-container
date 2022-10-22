@@ -1,0 +1,14 @@
+version: '3' 
+services: 
+  homeassistant: 
+    container_name: homeassistant 
+    image: "ghcr.io/home-assistant/home-assistant:stable" 
+    volumes:
+      - /home/pi/hass-container/.homeassistant:/config 
+      - /etc/localtime:/etc/localtime:ro
+      - /mnt/external:/mnt/external 
+    restart: unless-stopped 
+    devices:
+      - /dev/ttyUSB0:/dev/ttyUSB0
+    privileged: true
+    network_mode: host
