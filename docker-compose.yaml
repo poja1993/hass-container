@@ -4,11 +4,14 @@ services:
     container_name: homeassistant 
     image: "ghcr.io/home-assistant/home-assistant:stable" 
     volumes:
-      - /home/pi/hass-container/.homeassistant:/config 
+      - .homeassistant:/config 
       - /etc/localtime:/etc/localtime:ro
-      - /mnt/external:/mnt/external 
+      - /run/dbus:/run/dbus:ro
+      - /share:/share
+      - /var/run/docker.sock:/var/run/docker.sock 
     restart: unless-stopped 
     devices:
       - /dev/ttyUSB0:/dev/ttyUSB0
     privileged: true
     network_mode: host
+    command: /bin/sh -c "apk add gcc musl-dev bluez-dev ; /init"
