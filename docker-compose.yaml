@@ -14,4 +14,3 @@ services:
       - /dev/ttyUSB0:/dev/ttyUSB0
     privileged: true
     network_mode: host
-    command: /bin/sh -c "apk add gcc musl-dev bluez-dev ; /init"
