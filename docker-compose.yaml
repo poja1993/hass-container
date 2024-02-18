@@ -1,16 +1,74 @@
-version: '3' 
-services: 
-  homeassistant: 
-    container_name: homeassistant 
-    image: "ghcr.io/home-assistant/home-assistant:stable" 
+version: '3'
+
+services:
+  homeassistant:
+    container_name: homeassistant
+    build:
+      dockerfile_inline: |
+        FROM ghcr.io/home-assistant/home-assistant:stable
+        RUN apk add build-base && apk add bluez-dev # bluez patch
+    #image: "ghcr.io/home-assistant/home-assistant:stable"
     volumes:
-      - .homeassistant:/config 
+      - .homeassistant:/config # Homeassistant location folder
       - /etc/localtime:/etc/localtime:ro
       - /run/dbus:/run/dbus:ro
-      - /share:/share
-      - /var/run/docker.sock:/var/run/docker.sock 
-    restart: unless-stopped 
+      - /var/run/docker.sock:/var/run/docker.sock # Docker API
+      - /mnt/microSD/homeassistant:/external # Micro SD
+      - /mnt/microSD:/mnt/microSD
+      - /mnt/mediaCenter:/mnt/mediaCenter
+      - /mnt/mediaCenter/share:/share
+    restart: unless-stopped
     devices:
-      - /dev/ttyUSB0:/dev/ttyUSB0
-    privileged: true
+      - /dev/ttyACM0:/dev/ttyACM0 # Zigbee dongle
+    ports:
+      - 8123:8123
     network_mode: host
+    #networks:
+     # - home_local
+    depends_on:
+      - mosquitto
+
+  mosquitto:
+    container_name: mosquitto
+    image: eclipse-mosquitto
+    restart: unless-stopped
+    ports:
+      - 1883:1883
+      - 9001:9001
+    volumes:
+      - .mosquitto/config:/mosquitto/config
+      - /mnt/microSD/mosquitto/data:/mosquitto/data
+      - /mnt/microSD/mosquitto/log:/mosquitto/log
+#    networks:
+#      - home_local
+
+  kindle_screensaver:
+    container_name: kindle-screensaver
+    image: sibbl/hass-lovelace-kindle-screensaver:latest
+    environment:
+      - HA_BASE_URL=${HA_BASE_URL} # homeassistant's ip address in home_local, set from .env file
+      - HA_SCREENSHOT_URL=/lovelace-kindle/0?wp_enabled=true
+      - HA_ACCESS_TOKEN=${HA_ACCESS_TOKEN} # set from .env file
+      - UNSAFE_IGNORE_CERTIFICATE_ERRORS=true
+      - CRON_JOB=*/15 * * * *
+      - RENDERING_TIMEOUT=30000
+      - RENDERING_DELAY=10000
+      - RENDERING_SCREEN_HEIGHT=800
+      - RENDERING_SCREEN_WIDTH=600
+      - GRAYSCALE_DEPTH=8
+      - OUTPUT_PATH=/output/cover.png
+      - LANGUAGE=en
+      - ROTATION=0
+      - SCALING=1
+    ports:
+      - 5000:5000
+    volumes:
+      - /mnt/microSD/kindle_screensaver:/output
+    restart: unless-stopped
+#    networks:
+#      - home_local
+    depends_on:
+      - homeassistant
+
+#networks:
+#  home_local: # Created so that all containers can see each other without the need of privileges/host mode
